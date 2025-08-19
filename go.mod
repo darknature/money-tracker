@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/fatih/color v1.18.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/rs/zerolog v1.34.0
+	github.com/mattn/go-sqlite3 v1.14.32
 )
 
 require (
