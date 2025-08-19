@@ -6,6 +6,8 @@ import (
 
 	"money-tracker/internal/config"
 	"money-tracker/internal/lib/logger/handlers/slogpretty"
+	"money-tracker/internal/lib/logger/sl"
+	"money-tracker/internal/storage/sqlite"
 )
 
 const (
@@ -24,6 +26,11 @@ func main() {
 	log.Debug("debug message are enabled")
 
 	// init storage
+	storage, err := sqlite.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("failed to init storage", sl.Err(err))
+	}
+	_ = storage
 
 	// init router
 
