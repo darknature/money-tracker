@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
+	"money-tracker/internal/model"
 
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
@@ -63,6 +64,39 @@ func (s *Storage) SaveUser(email string, password string) (int64, error) {
 	if err != nil {
         return 0, fmt.Errorf("%s: %w", op, err)
     }
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("%s: failed to get last insert id: %w", op, err)
+	}
+
+	return id, nil
+}
+
+func (s *Storage) SaveTrasaction(tr model.Trasaction) (int64, error) {
+	const op = "storage.sqlite.SaveTransaction"
+
+	var isExitsUser bool
+	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", tr.UserID).Scan(&isExitsUser)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if !isExitsUser {
+		return 0, fmt.Errorf("%s: the user not found", op)
+	}
+
+	stmt, err := s.db.Prepare(`INSERT INTO transactions (user_id, amount, category, description, date)
+		VALUES (?, ?, ?, ?, ?)`)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	res, err := stmt.Exec(tr.UserID, tr.Amount, tr.Category, tr.Description, tr.Date)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
