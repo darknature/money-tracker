@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Storage struct {
@@ -32,6 +33,43 @@ func New(storagePath string) (*Storage, error) {
 	}
 
 	return &Storage{db: db}, nil
+}
+
+func (s *Storage) SaveUser(email string, password string) (int64, error) {
+	const op = "storage.sqlite.SaveUser"
+
+	var isExistEmail bool
+	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", email).Scan(&isExistEmail)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if isExistEmail {
+		return 0, fmt.Errorf("%s: the email already exist", op)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	stmt, err := s.db.Prepare("INSERT INTO users (email, password_hash) VALUES (?, ?)")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	res, err := stmt.Exec(email, string(hashedPassword))
+
+	if err != nil {
+        return 0, fmt.Errorf("%s: %w", op, err)
+    }
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("%s: failed to get last insert id: %w", op, err)
+	}
+
+	return id, nil
 }
 
 func createUsersTable(db *sql.DB) error {
