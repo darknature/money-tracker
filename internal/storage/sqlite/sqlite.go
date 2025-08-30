@@ -73,7 +73,7 @@ func (s *Storage) SaveUser(email string, password string) (int64, error) {
 	return id, nil
 }
 
-func (s *Storage) SaveTrasaction(tr model.Trasaction) (int64, error) {
+func (s *Storage) SaveTransaction(tr model.Trasaction) (int64, error) {
 	const op = "storage.sqlite.SaveTransaction"
 
 	var isExitsUser bool

@@ -3,10 +3,9 @@ package model
 import "time"
 
 type Trasaction struct {
-	ID          int64
-	UserID      int64
-	Amount      int64
-	Category    string
-	Description string
-	Date        time.Time
+	UserID      int64		`json:"user_id"`
+	Amount      int64		`json:"amount"`
+	Category    string		`json:"category"`
+	Description string		`json:"description"`
+	Date        time.Time	`json:"date"`
 }

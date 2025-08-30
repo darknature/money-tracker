@@ -2,12 +2,18 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
 
 	"money-tracker/internal/config"
+	"money-tracker/internal/http-server/handlers/transactions/save"
+	mwLogger "money-tracker/internal/http-server/middleware/logger"
 	"money-tracker/internal/lib/logger/handlers/slogpretty"
 	"money-tracker/internal/lib/logger/sl"
 	"money-tracker/internal/storage/sqlite"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 const (
@@ -30,11 +36,34 @@ func main() {
 	if err != nil {
 		log.Error("failed to init storage", sl.Err(err))
 	}
-	_ = storage
 
 	// init router
+	router := chi.NewRouter()
+
+	// middleware
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(mwLogger.New(log))
+	router.Use(middleware.Recoverer)
+
+	router.Post("/transactions/add", save.New(log, storage))
 
 	// run server
+	log.Info("starting server", slog.String("address", cfg.Adress))
+
+	srv := &http.Server{
+		Addr: 			cfg.Adress,
+		Handler: 		router,
+		ReadTimeout: 	cfg.HTTPServer.Timeout,
+		WriteTimeout: 	cfg.HTTPServer.Timeout,
+		IdleTimeout: 	cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("failed to start server")
+	}
+
+	log.Error("server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
