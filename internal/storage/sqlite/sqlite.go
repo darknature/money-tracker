@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"money-tracker/internal/model"
 
@@ -138,6 +139,36 @@ func (s *Storage) SaveTransaction(tr model.Trasaction) (int64, error) {
 	return id, nil
 }
 
+func (s *Storage) RemoveTransaction(trID int64, userID int64) error {
+	const op = "storage.sqlite.RemoveTransaction"
+
+	var isExitsUser bool
+	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userID).Scan(&isExitsUser)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if !isExitsUser {
+		return fmt.Errorf("%s: the user not found", op)
+	}
+
+	stmt, err := s.db.Prepare("DELETE FROM transactions WHERE id = ? AND user_id = ?")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(trID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("%s: the transaction not found", op)
+	}
+
+	if err != nil {
+		return fmt.Errorf("%s: execute statement: %w", op, err)
+	}
+
+	return nil
+}
+ 
 func createUsersTable(db *sql.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
