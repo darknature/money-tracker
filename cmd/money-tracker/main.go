@@ -7,6 +7,8 @@ import (
 
 	"money-tracker/internal/config"
 	"money-tracker/internal/http-server/handlers/transactions/save"
+	"money-tracker/internal/http-server/handlers/auth"
+	mwAuth "money-tracker/internal/http-server/middleware/authorization"
 	mwLogger "money-tracker/internal/http-server/middleware/logger"
 	"money-tracker/internal/lib/logger/handlers/slogpretty"
 	"money-tracker/internal/lib/logger/sl"
@@ -46,7 +48,15 @@ func main() {
 	router.Use(mwLogger.New(log))
 	router.Use(middleware.Recoverer)
 
-	router.Post("/transactions/add", save.New(log, storage))
+	 // Public routes
+    router.Post("/register", auth.Register(log, storage, cfg.JWTSecret))
+    router.Post("/login", auth.Login(log, storage, cfg.JWTSecret))
+    
+    // Protected routes
+    router.Group(func(r chi.Router) {
+        r.Use(mwAuth.Auth(log, cfg.JWTSecret))
+        r.Post("/transactions/add", save.New(log, storage))
+    })
 
 	// run server
 	log.Info("starting server", slog.String("address", cfg.Adress))

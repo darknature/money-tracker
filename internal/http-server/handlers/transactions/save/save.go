@@ -3,7 +3,9 @@ package save
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
+	mwAuth "money-tracker/internal/http-server/middleware/authorization"
 	"money-tracker/internal/lib/api/response"
 	"money-tracker/internal/lib/logger/sl"
 	"money-tracker/internal/model"
@@ -38,7 +40,22 @@ func New(log *slog.Logger, trSaver TrSaver) http.HandlerFunc {
 
 		log.Info("req body decoded", slog.Any("requset", req))
 
-		id, err := trSaver.SaveTransaction(req.Tr)
+		userID, ok := r.Context().Value(mwAuth.UserIDKey).(int64)
+		if !ok {
+			log.Error("user id not found in context")
+			render.JSON(w, r, response.Error("user not authenticated"))
+			return
+		}
+
+		tr := model.Trasaction{
+			UserID:      userID,
+			Amount:      req.Tr.Amount,
+			Category:    req.Tr.Category,
+			Description: req.Tr.Description,
+			Date:        time.Now(),
+		}
+
+		id, err := trSaver.SaveTransaction(tr)
 		if err != nil {
 			log.Error("failed to save transaction", sl.Err(err))
 			render.JSON(w, r, "failed to save transaction")

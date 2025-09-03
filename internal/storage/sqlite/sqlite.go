@@ -73,6 +73,38 @@ func (s *Storage) SaveUser(email string, password string) (int64, error) {
 	return id, nil
 }
 
+func (s *Storage) GetUserByEmail(email string) (*model.User, error) {
+	const op = "storage.sqlite.GetUserByEmail"
+
+	var user model.User
+	err := s.db.QueryRow(`
+        SELECT id, email, password_hash, created_at 
+        FROM users WHERE email = ?
+    `, email).Scan(&user.ID, &user.Email, &user.Password, &user.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &user, nil
+}
+
+func (s *Storage) GetUserByID(id int64) (*model.User, error) {
+	const op = "storage.sqlite.GetUserByID"
+
+	var user model.User
+	err := s.db.QueryRow(`
+		SELECT id, email, password, created_at
+		FROM users WHERE id = ?
+	`, id).Scan(&user.ID, &user.Email, &user.Password, &user.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err) 
+	}
+
+	return &user, nil
+}
+
 func (s *Storage) SaveTransaction(tr model.Trasaction) (int64, error) {
 	const op = "storage.sqlite.SaveTransaction"
 
